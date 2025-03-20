@@ -14,8 +14,6 @@ def run_model(train_ts, test_ts, n_rois, model, **kwargs):
     test_ts: testing timeseries
     n_rois: number of rois in parcellation
     model: model object
-
-
     """
     assert train_ts.shape[1] == n_rois == test_ts.shape[1]
     fc_mat = np.zeros((n_rois, n_rois))
