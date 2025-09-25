@@ -29,7 +29,7 @@ classifiers = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["model-fc*"]
+include = ["model_fc*"]
 
 [tool.ruff]
 target-version = "py311"
