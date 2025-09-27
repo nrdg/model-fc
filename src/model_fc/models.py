@@ -3,13 +3,11 @@ from nilearn.connectome import ConnectivityMeasure
 from pyuoi.linear_model import UoI_Lasso
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import ElasticNetCV, LassoCV, LassoLarsIC
-from sklearn.linear_model._base import _preprocess_data, _rescale_data
 from sklearn.metrics import r2_score
+from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import (
-    _check_sample_weight,
-    check_array,
     check_is_fitted,
-    check_X_y,
+    validate_data,
 )
 
 
@@ -115,54 +113,23 @@ class PearsonRegressor(BaseEstimator):
         self.copy_X = copy_X
         self.fit_intercept = fit_intercept
 
-    def _validate_input(self, X, y, sample_weight=None):
-        """
-        Helper function to validate the inputs
-        """
-        X, y = check_X_y(X, y, y_numeric=True, multi_output=True)
+    def fit(self, X, y):
+        type_of_target(y, raise_unknown=True)
+        X, y = validate_data(self, X, y)
 
-        if sample_weight is not None:
-            sample_weight = _check_sample_weight(sample_weight, X, dtype=X.dtype)
-
-        X, y, X_offset, y_offset, X_scale = _preprocess_data(
-            X,
-            y,
-            fit_intercept=self.fit_intercept,
-            copy=self.copy_X,
-            sample_weight=sample_weight,
-            check_input=True,
-        )
-
-        if sample_weight is not None:
-            # Sample weight can be implemented via a simple rescaling.
-            outs = _rescale_data(X, y, sample_weight)
-            X, y = outs[0], outs[1]
-
-        return X, y, X_offset, y_offset, X_scale
-
-    def fit(self, X, y, sample_weight=None):
-        X, y, X_offset, y_offset, X_scale = self._validate_input(
-            X, y, sample_weight=sample_weight
-        )
         # Calculate the Pearson coefficient between y and every column of x
         corrmatrix = np.corrcoef(np.concatenate([X, y[:, None]], -1).T)
         self.coeff_ = corrmatrix[-1, :-1]
-        # Calculate the linear combination of columns of x with these coefficients
+        # Calculate the linear combination of columns of X with these
+        # coefficients
         naive_pred_y = X @ self.coeff_
-        # Calculathe the scale parameter to match the variance of y
-        self.scale_ = naive_pred_y / y
+        # Calculate the scale parameter to match the variance of y
+        self.scale_ = np.mean(y / naive_pred_y)
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[1]
         return self
 
     def predict(self, X):
-        X = check_array(X, accept_sparse=True)
-        check_is_fitted(self, "is_fitted_")
-        # Multiply X by the coefficients
-        print(X.shape)
-        print(self.coeff_.shape)
-        pred_naive = X @ self.coeff_
-        # Multiply through by scale
-        pred = pred_naive / self.scale_
-        # Return
-        return pred
+        check_is_fitted(self)
+        X = validate_data(self, X, reset=False)
+        return (X @ self.coeff_) / self.scale_
