@@ -16,7 +16,3 @@ def test_PearsonRegressor():
     pr.fit(X, y)
     pred = pr.predict(X)
     assert pred.shape == y.shape
-
-
-def _more_tags(self):
-    return {"multioutput": False}
