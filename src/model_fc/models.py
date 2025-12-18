@@ -1,9 +1,14 @@
 import numpy as np
-from mpi4py import MPI
 from nilearn.connectome import ConnectivityMeasure
 from pyuoi.linear_model import UoI_Lasso
+from sklearn.base import BaseEstimator
 from sklearn.linear_model import ElasticNetCV, LassoCV, LassoLarsIC
 from sklearn.metrics import r2_score
+from sklearn.utils.multiclass import type_of_target
+from sklearn.utils.validation import (
+    check_is_fitted,
+    validate_data,
+)
 
 
 def run_model(train_ts, test_ts, n_rois, model, **kwargs):
@@ -95,3 +100,36 @@ def init_model(
         model = ConnectivityMeasure(kind=model_str)
 
     return model
+
+
+class PearsonRegressor(BaseEstimator):
+    """
+    Parameters
+    ----------
+    """
+
+    def __init__(self, fit_scale=True, copy_X=False, fit_intercept=False):
+        self.fit_scale = fit_scale
+        self.copy_X = copy_X
+        self.fit_intercept = fit_intercept
+
+    def fit(self, X, y):
+        type_of_target(y, raise_unknown=True)
+        X, y = validate_data(self, X, y)
+
+        # Calculate the Pearson coefficient between y and every column of x
+        corrmatrix = np.corrcoef(np.concatenate([X, y[:, None]], -1).T)
+        self.coeff_ = corrmatrix[-1, :-1]
+        # Calculate the linear combination of columns of X with these
+        # coefficients
+        naive_pred_y = X @ self.coeff_
+        # Calculate the scale parameter to match the variance of y
+        self.scale_ = np.mean(y / naive_pred_y)
+        self.is_fitted_ = True
+        self.n_features_in_ = X.shape[1]
+        return self
+
+    def predict(self, X):
+        check_is_fitted(self)
+        X = validate_data(self, X, reset=False)
+        return (X @ self.coeff_) / self.scale_

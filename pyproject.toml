@@ -12,7 +12,9 @@ requires-python = ">=3.9"
 
 
 dependencies = [
-  "numpy"
+  "numpy",
+  "nilearn",
+  "pyuoi@git+https://github.com/nrdg/pyuoi.git"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -26,8 +28,8 @@ classifiers = [
 [tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
-include = ["model-fc*"]
-namespaces = false
+where = ["src"]
+include = ["model_fc*"]
 
 [tool.ruff]
 target-version = "py311"
